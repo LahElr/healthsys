@@ -8,9 +8,10 @@ import hosp from '../pic/zj1hosp.jpg'
 import doc1 from '../pic/doc1.jpg'
 import {withRouter} from 'react-router-dom'
 
-import { Typography, Button, Input, Descriptions, Radio, Card, Steps, message, Divider, Space, List, Avatar, Image, Modal, Result } from 'antd';
+import { Empty, Button, Input, Descriptions, Radio, Card, Steps, message, Divider, Space, List, Avatar, Image, Modal, Result, Alert } from 'antd';
 import { MessageOutlined, LikeOutlined, StarOutlined } from '@ant-design/icons';
 import Myfooter from './Components/Myfooter';
+import { queryDoctor } from '../utils/utils';
 
 const { Step } = Steps;
 
@@ -52,11 +53,14 @@ class Guahao extends React.Component{
     super(props);
     this.state = {
       current: 0,
+      firstRender: true,
       isModalVisible: false,
       chosenDoctor: {},
-      chosenKeshi: "",
-      chosenDate: "",
-      chosenWubie: ""
+      chosenKeshi: "精神卫生科",
+      chosenDate: this.getFullDateOption(0),
+      chosenWubie: "上午",
+      chosenIsSpecialist: false,
+      itemList: []
     }
   }
 
@@ -109,11 +113,120 @@ class Guahao extends React.Component{
     });
   }
 
+  onChangeIsSpecialist = (e) => {
+    this.setState({
+      chosenIsSpecialist: e.target.value
+    });
+  }
+
   jump = (path) => {
     const { history } = this.props;
     history.push(path);
     console.log(this.props.history);
   }
+
+  getDateOption = (delta) => {
+    var today = new Date();
+    today.setDate(today.getDate()+delta);
+    let month = today.getMonth()+1;
+    let day = today.getDate();
+    return `${month}月${day}日`;
+  }
+
+  getFullDateOption = (delta) => {
+    var today = new Date();
+    today.setDate(today.getDate()+delta);
+    let year = today.getFullYear();
+    let month = today.getMonth()+1;
+    let day = today.getDate();
+    let zero = (month<10) ? '0' : '';
+    return `${year}-${zero}${month}-${day}`;
+  }
+  
+  handleQuery = () => {
+    let data = {
+      date: this.state.chosenDate,
+      keshi: this.state.chosenKeshi,
+      wubie: this.state.chosenWubie,
+      isSpecialist: this.state.chosenIsSpecialist
+    }
+    queryDoctor(data).then( (res) => {
+      message.success(res.data.message);
+      this.setState({
+        firstRender: false,
+        itemList: res.data.doctorInfo
+      });
+    }, (res) => {
+      message.error(res.data.message);
+      this.setState({
+        firstRender: false,
+        itemList: []
+      });
+    }).catch((err) => {
+      message.error(err);
+      this.setState({
+        firstRender: false,
+        itemList: []
+      });
+    })
+  }
+
+  selectResultCard = () => {
+    if(this.state.firstRender) {
+      return (
+        <div style={{textAlign: "center"}}>请点击查询按钮开始搜索</div>
+      )
+    } else {
+        let itemList = this.state.itemList;
+        if(itemList.length == 0 ){
+          return (<Empty description="暂无数据"/>);
+        } else {
+          return (
+            <List
+              itemLayout="vertical"
+              size="large"
+              pagination={{
+                onChange: page => {
+                  console.log(page);
+                },
+                pageSize: 3,
+              }}
+              dataSource={itemList}
+              renderItem={item => (
+                <List.Item
+                  key={item.userId}
+                  actions={[
+                    <Button>查看详情</Button>,
+                    <Button type="primary" onClick={()=>{
+                      this.setState({
+                        chosenDoctor: item,
+                        isModalVisible: true
+                      })
+                    }}>立即预约</Button>
+                  ]}
+                  extra={
+                    <img
+                      width={120}
+                      height={120}
+                      alt="logo"
+                      src={hosp}
+                    />
+                  }
+                >
+                  
+                  <List.Item.Meta
+                        avatar={<Avatar size={100} src={`http://localhost:8000/images/${item.avatar}`}/>}
+                        title={item.name}
+                        description={`${item.age}岁 | ${item.hospitalName} | ${item.keshi} | 从医${item.workYears}年`}
+                    />
+                    {item.description}
+                  </List.Item>
+              )}
+            />
+          );
+        }
+      }
+    }
 
   render(){
     return (
@@ -139,23 +252,23 @@ class Guahao extends React.Component{
                     <div className="g-sub-text-table-title">科室筛选</div>
                     <Divider type="vertical" className="g-vertical-split-line"/>
                     <div className="g-sub-text-table-title-2">
-                        <Radio.Group defaultValue="b" buttonStyle="solid" onChange={this.onChangeKeshi}>
+                        <Radio.Group defaultValue={this.state.chosenKeshi} buttonStyle="solid" onChange={this.onChangeKeshi}>
                           <Space size={[8, 14]} wrap>
-                            <Radio.Button value='b'>精神卫生科</Radio.Button>
-                            <Radio.Button value='c'>内分泌科</Radio.Button>
-                            <Radio.Button value='d'>肾脏病科</Radio.Button>
-                            <Radio.Button value='e'>骨科</Radio.Button>
-                            <Radio.Button value='f'>口腔科</Radio.Button>
-                            <Radio.Button value='g'>精神卫生科</Radio.Button>
-                            <Radio.Button value='h'>内分泌科</Radio.Button>
-                            <Radio.Button value='i'>肾脏病科</Radio.Button>
-                            <Radio.Button value='j'>骨科</Radio.Button>
-                            <Radio.Button value='k'>口腔科</Radio.Button>
-                            <Radio.Button value='l'>精神卫生科</Radio.Button>
-                            <Radio.Button value='m'>内分泌科</Radio.Button>
-                            <Radio.Button value='n'>肾脏病科</Radio.Button>
-                            <Radio.Button value='o'>骨科</Radio.Button>
-                            <Radio.Button value='p'>口腔科</Radio.Button>
+                            <Radio.Button value='精神卫生科'>精神卫生科</Radio.Button>
+                            <Radio.Button value='内分泌科'>内分泌科</Radio.Button>
+                            <Radio.Button value='肾脏病科'>肾脏病科</Radio.Button>
+                            <Radio.Button value='骨科'>骨科</Radio.Button>
+                            <Radio.Button value='口腔科'>口腔科</Radio.Button>
+                            <Radio.Button value='眼科'>眼科</Radio.Button>
+                            <Radio.Button value='普通外科'>普通外科</Radio.Button>
+                            <Radio.Button value='普通内科'>普通内科</Radio.Button>
+                            <Radio.Button value='放射科'>放射科</Radio.Button>
+                            <Radio.Button value='检验科'>检验科</Radio.Button>
+                            <Radio.Button value='耳鼻喉科'>耳鼻喉科</Radio.Button>
+                            <Radio.Button value='急诊科'>急诊科</Radio.Button>
+                            <Radio.Button value='妇科'>妇科</Radio.Button>
+                            <Radio.Button value='肛肠科'>肛肠科</Radio.Button>
+                            <Radio.Button value='保健科'>保健科</Radio.Button>
                           </Space>
                         </Radio.Group>
                       
@@ -166,10 +279,15 @@ class Guahao extends React.Component{
                     <div className="g-sub-text-table-title">就诊日期</div>
                     <Divider type="vertical" className="g-vertical-split-line"/>
                     <div className="g-sub-text-table-title-2">
-                      <Radio.Group defaultValue="b" buttonStyle="solid" onChange={this.onChangeDate}>
+                      <Radio.Group defaultValue={this.state.chosenDate} buttonStyle="solid" onChange={this.onChangeDate}>
                         <Space size={[8, 16]} wrap>
-                          <Radio.Button value='b'>今日</Radio.Button>
-                          <Radio.Button value='c'>指定日期</Radio.Button>
+                          <Radio.Button value={this.getFullDateOption(0)}>{this.getDateOption(0)}</Radio.Button>
+                          <Radio.Button value={this.getFullDateOption(1)}>{this.getDateOption(1)}</Radio.Button>
+                          <Radio.Button value={this.getFullDateOption(2)}>{this.getDateOption(2)}</Radio.Button>
+                          <Radio.Button value={this.getFullDateOption(3)}>{this.getDateOption(3)}</Radio.Button>
+                          <Radio.Button value={this.getFullDateOption(4)}>{this.getDateOption(4)}</Radio.Button>
+                          <Radio.Button value={this.getFullDateOption(5)}>{this.getDateOption(5)}</Radio.Button>
+                          <Radio.Button value={this.getFullDateOption(6)}>{this.getDateOption(6)}</Radio.Button>
                         </Space>
                       </Radio.Group>
                     </div>
@@ -179,10 +297,23 @@ class Guahao extends React.Component{
                     <div className="g-sub-text-table-title">就诊时段</div>
                     <Divider type="vertical" className="g-vertical-split-line"/>
                     <div className="g-sub-text-table-title-2">
-                      <Radio.Group defaultValue="b" buttonStyle="solid" onChange={this.onChangeWubie}>
+                      <Radio.Group defaultValue={this.state.chosenWubie} buttonStyle="solid" onChange={this.onChangeWubie}>
                         <Space size={[8, 16]} wrap>
-                          <Radio.Button value='b'>上午</Radio.Button>
-                          <Radio.Button value='c'>下午</Radio.Button>
+                          <Radio.Button value='上午'>上午</Radio.Button>
+                          <Radio.Button value='下午'>下午</Radio.Button>
+                        </Space>
+                      </Radio.Group>
+                    </div>
+                  </div>
+
+                  <div className="sub-text-table-one-line">
+                    <div className="g-sub-text-table-title">挂号类型</div>
+                    <Divider type="vertical" className="g-vertical-split-line"/>
+                    <div className="g-sub-text-table-title-2">
+                      <Radio.Group defaultValue={this.state.chosenIsSpecialist} buttonStyle="solid" onChange={this.onChangeIsSpecialist}>
+                        <Space size={[8, 16]} wrap>
+                          <Radio.Button value={false}>普通门诊</Radio.Button>
+                          <Radio.Button value={true}>专家门诊</Radio.Button>
                         </Space>
                       </Radio.Group>
                     </div>
@@ -190,7 +321,7 @@ class Guahao extends React.Component{
 
                   <div className="toolbarGroup">
                     <Space type="horizontal" size="middle">
-                      <Button type="primary" className="toolbarButton">查询</Button>
+                      <Button type="primary" className="toolbarButton" onClick={this.handleQuery}>查询</Button>
                       <Button className="toolbarButton">重置</Button>
                     </Space>
                   </div>
@@ -199,47 +330,7 @@ class Guahao extends React.Component{
             </Card>
 
             <Card className="resultCard">
-            <List
-              itemLayout="vertical"
-              size="large"
-              pagination={{
-                onChange: page => {
-                  console.log(page);
-                },
-                pageSize: 3,
-              }}
-              dataSource={listData}
-              renderItem={item => (
-                <List.Item
-                  key={item.title}
-                  actions={[
-                    <Button>查看详情</Button>,
-                    <Button type="primary" onClick={()=>{
-                      this.setState({
-                        chosenDoctor: item,
-                        isModalVisible: true
-                      })
-                    }}>立即预约</Button>
-                  ]}
-                  extra={
-                    <img
-                      width={120}
-                      height={120}
-                      alt="logo"
-                      src={hosp}
-                    />
-                  }
-                >
-                  
-                  <List.Item.Meta
-                    avatar={<Avatar size={100} src={doc1}/>}
-                    title={item.title}
-                    description={item.description}
-                  />
-                  {item.content}
-                </List.Item>
-              )}
-            />
+              {this.selectResultCard()}
             </Card></>)}
 
             {this.state.current === 1 && (<>
