@@ -1,19 +1,31 @@
-import React, { createRef } from "react";
+import React, { createRef, Fragment } from "react";
 import { ChatList, MessageList } from 'react-chat-elements'
 import 'react-chat-elements/dist/main.css';
-import { Button, Row, Col, Divider, Input, Card } from "antd";
+import { Button, Row, Col, Divider, Input, Card, Upload, message } from "antd";
 import Myheader from './Myheader'
 import Navbar from './Navbar'
 import './Chat.css'
+import { UploadOutlined } from '@ant-design/icons';
 
 const size = {
     width: document.documentElement.clientWidth,
     hieght: document.documentElement.clientHeight
 }
 const { TextArea } = Input;
+let user_list = [];//一个列表，存储所有的聊天对象
+let msg_lists = {};//一个字典，键是聊天对象的名字，值是一个列表，这个列表中存储所有的消息
 
 function onPatientNext() {
-    alert("switch patient.");
+    message.success("switch patient.");
+    user_list.push({
+        avatar: '../../../public/favicon.ico',
+        alt: 'Reactjs',
+        title: 'new user',
+        subtitle: '大夫，帮俺看看',
+        date: new Date(),
+        // unread: Math.floor(Math.random() * 10),
+    });
+    msg_lists[user_list[user_list.length-1].title] = [];
 }
 
 class DoctorChatWidget extends React.Component {
@@ -21,13 +33,15 @@ class DoctorChatWidget extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            user: this.props.user,
-            msgLists: this.props.msgLists,
+            // user: this.props.user,
+            // msgLists: this.props.msgLists,
             sendMsg: "",
             window_size: {
                 width: 700,
                 height: 600
-            }
+            },
+            file: null,
+            imagePreviewUrl: ""
         }
         this.onMsgSend = this.onMsgSend.bind(this);
         this.messagesEnd = createRef();
@@ -38,9 +52,8 @@ class DoctorChatWidget extends React.Component {
         this.updateWindowDimensions();
         window.addEventListener('resize', this.updateWindowDimensions);
         // this.setState({ msgDataList: this.state.msgLists[this.state.user.title] });
-        this.setState({ msgLists: this.props.msgLists });
-        this.setState({ user: this.props.user });
-        alert("...");
+        // this.setState({ msgLists: this.props.msgLists });
+        // this.setState({ user: this.props.user });
     }
 
     componentWillReceiveProps(nextProps, nextContext) {
@@ -57,7 +70,8 @@ class DoctorChatWidget extends React.Component {
 
     onMsgSend() {
         // let list = this.state.msgLists[this.state.user.title];
-        this.state.msgLists[this.state.user.title].push({
+        // this.state.msgLists[this.state.user.title].push({
+        msg_lists[this.state.user.title].push({
             position: 'right',
             type: 'text',
             text: this.state.sendMsg,
@@ -67,28 +81,49 @@ class DoctorChatWidget extends React.Component {
         this.setState({ sendMsg: "" });
     }
 
-    onPicSend() {
-        alert("pic select");
+    onPicSend = (info) => {
+        // alert("pic select");
+        // e.preventDefault();
+
+        // var reader = new FileReader();
+        // var file = e.target.files[0];
+
+        // reader.onloadend = () => {
+        //     console.log('文件名为—', file);
+        //     console.log('文件结果为—', reader.result);
+        //     this.setState({
+        //         file: file,
+        //         imagePreviewUrl: reader.result
+        //     });
+        // }
+        // reader.readAsDataURL(file)
+
+        if (info.file.status !== 'uploading') {
+            console.log(info.file, info.fileList);
+        }
+        if (info.file.status === 'done') {
+            message.success(`${info.file.name} file uploaded successfully`);
+
+        } else if (info.file.status === 'error') {
+            message.error(`${info.file.name} file upload failed.`);
+        }
+
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
         this.messagesEnd.scrollTop = this.messagesEnd.scrollHeight;
     }
+
     render() {
         return (
             <Col style={{
                 width: this.state.window_size.width * 0.5,
-                // width: this.state.window_size.width * 0.617,
                 height: 600,
-                // height: this.state.window_size.height,
                 display: 'inline-block',
-                borderRight: "0px solid",
-                borderTop: "0px solid",
-                borderBottom: "0px solid",
             }}>
                 <Row>
                     <Col style={{
-                        width: this.state.window_size.width * 0.5,//700,
+                        width: this.state.window_size.width * 0.5,
                         height: 40,
                         textAlign: "center",
                         verticalAlign: "middle",
@@ -114,32 +149,28 @@ class DoctorChatWidget extends React.Component {
                     >
                         <MessageList
                             className='message-list'
-                            dataSource={this.state.msgLists[this.state.user.title]}
+                            // dataSource={this.state.msgLists[this.state.user.title]}
+                            dataSource={msg_lists[this.state.user.title]}
                         />
                     </div>
                 </Row>
                 <Row>
                     <Col style={{
-                        width: this.state.window_size.width * 0.5 - 26,
+                        width: this.state.window_size.width * 0.5,
                         height: 25,
                         textAlign: "right",
                         verticalAlign: "right",
                         backgroundColor: "\t#F0F0FF",
-                        borderTop: "1px solid",
-                        borderRight: "1px solid"
+                        borderTop: "1px solid #B0B0FF",
+                        // borderRight: "1px solid"
                     }}>
-                    </Col>
-                    <Col style={{
-                        width: 26,
-                        height: 25,
-                        textAlign: "right",
-                        verticalAlign: "right",
-                        backgroundColor: "\t#F0F0FF",
-                        borderTop: "1px solid"
-                    }}>
-                        <Button type="text" size='small' onClick={this.onPicSend}>
-                            图
-                        </Button>
+                    
+                        <Upload name='file'
+                            action=""
+                            onChange={this.onPicSend}
+                            showUploadList={false} >
+                            <Button icon={<UploadOutlined />} size="small"></Button>
+                        </Upload>
                     </Col>
                 </Row>
                 <Row>
@@ -177,7 +208,7 @@ class DoctorChatWidget extends React.Component {
                         <Button type="primary" onClick={onPatientNext}>下一位</Button>
                     </Col>
                 </Row>
-            </Col>
+            </Col >
         );
     }
 }
@@ -186,8 +217,8 @@ class DoctorChatView extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            userList: [],
-            msgLists: {},
+            // userList: [],
+            // msgLists: {},
             nowChatTgt: null,
             window_size: {
                 width: 700,
@@ -200,11 +231,12 @@ class DoctorChatView extends React.Component {
     componentDidMount() {
         this.updateWindowDimensions();
         window.addEventListener('resize', this.updateWindowDimensions);
-        let u_list = [];
-        let m_lists = {};
+        // let u_list = [];
+        // let m_lists = {};
         for (let i = 0; i < 14; ++i) {
-            u_list.push({
-                avatar: './public/favicon.ico',
+            // u_list.push({
+            user_list.push({
+                avatar: '../../../public/favicon.ico',
                 alt: 'Reactjs',
                 title: '用户' + i,
                 subtitle: 'What are you doing?',
@@ -216,14 +248,17 @@ class DoctorChatView extends React.Component {
                 m_list.push({
                     position: 'left',
                     type: 'text',
-                    text: 'hello' + i + u_list[u_list.length - 1].title,
+                    // text: 'hello' + i + u_list[u_list.length - 1].title,
+                    text: 'hello' + i + user_list[user_list.length - 1].title,
                     date: new Date()
                 });
-            m_lists[u_list[u_list.length - 1].title] = m_list;
+            // m_lists[u_list[u_list.length - 1].title] = m_list;
+            msg_lists[user_list[user_list.length - 1].title] = m_list;
         }
-        this.setState({ userList: u_list });
-        this.setState({ nowChatTgt: u_list[0] });
-        this.setState({ msgLists: m_lists });
+        // this.setState({ userList: u_list });
+        // this.setState({ nowChatTgt: u_list[0] });
+        this.setState({ nowChatTgt: user_list[0] }); //default target
+        // this.setState({ msgLists: m_lists });
     }
 
     onChangeChatTgt = (e) => {
@@ -253,20 +288,23 @@ class DoctorChatView extends React.Component {
                         width: this.state.window_size.width * 0.2 - 2,
                         height: 600,
                         display: 'inline-block',
-                        borderRight: "2px solid",
+                        borderRight: "2px solid #C4C4FF",
                         overflow: "auto"
                     }}>
                         <ChatList
                             className='chat-list'
                             onClick={e => this.onChangeChatTgt(e)}
-                            dataSource={this.state.userList} />
+                            // dataSource={this.state.userList}
+                            dataSource={user_list}
+                        />
                     </Col>
-                    {this.state.userList.length == 0 ? <div>没有已经启动的问诊</div> : <DoctorChatWidget user={this.state.nowChatTgt} msgLists={this.state.msgLists} />}
+                    {/* {this.state.userList.length == 0 ? <div>没有已经启动的问诊</div> : <DoctorChatWidget user={this.state.nowChatTgt} msgLists={this.state.msgLists} />} */}
+                    {user_list.length == 0 ? <div>没有已经启动的问诊</div> : <DoctorChatWidget user={this.state.nowChatTgt} />}
                     <Col style={{
                         width: this.state.window_size.width * 0.2 - 2,
                         height: 600,
                         display: 'inline-block',
-                        borderLeft: "2px solid",
+                        borderLeft: "2px solid #C4C4FF",
                         overflow: "auto",
                         textAlign: "center",
                         verticalAlign: "middle",
@@ -291,10 +329,8 @@ class Chatter extends React.Component {
             <div>
                 <Myheader />
                 <Navbar />
-                {/* <h1 style={{ textAlign: 'center' }}>欢迎使用线上问诊</h1> */}
-                <DoctorChatView
-                    className='chatter'
-                />
+                <h3 style={{ textAlign: 'center' }}>医生你好，欢迎使用线上问诊功能</h3>
+                <DoctorChatView/>
             </div>
         )
     }
